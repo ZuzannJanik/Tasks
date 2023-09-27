@@ -65,4 +65,5 @@ public class SimpleEmailService {
         mailMessage.setText(mailCreatorService.buildTrelloCardEmail(mail.getMessage()));
         return mailMessage;
     }
+
 }
