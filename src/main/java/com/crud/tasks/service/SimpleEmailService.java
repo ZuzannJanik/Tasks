@@ -15,30 +15,54 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class SimpleEmailService {
 
+    @Autowired
+    private MailCreatorService mailCreatorService;
+    @Autowired
     private final JavaMailSender javaMailSender;
 
     public void send(final Mail mail) {
         log.info("Starting email preparation...");
         try {
-            SimpleMailMessage mailMessage = createMailMessage(mail);
-            javaMailSender.send(mailMessage);
+            javaMailSender.send(createMimeMessage(mail));
             log.info("Email has been sent.");
         } catch (MailException e) {
             log.error("Failed to process email sending: " + e.getMessage(), e);
         }
     }
 
+    public void sendDaily(final Mail mail) {
+        log.info("Starting email preparation...");
+        try {
+            javaMailSender.send(createMimeMessageForNumberOfTasks(mail));
+            log.info("Email has been sent.");
+        } catch (MailException e) {
+            log.error("Failed to process email sending: " + e.getMessage(), e);
+        }
+    }
+
+    private MimeMessagePreparator createMimeMessage(final Mail mail) {
+        return mimeMessage -> {
+            MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage);
+            messageHelper.setTo(mail.getMailTo());
+            messageHelper.setSubject(mail.getSubject());
+            messageHelper.setText(mailCreatorService.buildTrelloCardEmail(mail.getMessage()), true);
+        };
+    }
+
+    private MimeMessagePreparator createMimeMessageForNumberOfTasks(final Mail mail) {
+        return mimeMessage -> {
+            MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage);
+            messageHelper.setTo(mail.getMailTo());
+            messageHelper.setSubject(mail.getSubject());
+            messageHelper.setText(mailCreatorService.buildNumberOfTasksInfoEmail(mail.getMessage()), true);
+        };
+    }
+
     private SimpleMailMessage createMailMessage(final Mail mail) {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setTo(mail.getMailTo());
         mailMessage.setSubject(mail.getSubject());
-        mailMessage.setText(mail.getMessage());
-
-        Optional<String> mailOptional = Optional.ofNullable(mail.getToCc());
-        if (mailOptional.isPresent()) {
-            mailMessage.setCc(mail.getToCc());
-        };
-
+        mailMessage.setText(mailCreatorService.buildTrelloCardEmail(mail.getMessage()));
         return mailMessage;
     }
 }
